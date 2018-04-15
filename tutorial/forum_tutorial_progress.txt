@@ -1,0 +1,601 @@
+Baixado de http://www.biblivre.org.br/forum/viewtopic.php?f=68&t=3675
+
+Conteúdo do documento bib4pub.doc
+
+----------------------------------------------------------------------
+
+Instalando o Biblivre 4 no Linux Educacional 5.0 – Home Edition
+(Ubuntu Precise 12.04)
+
+Essa distribuição foi escolhida para a tarefa por vários motivos entre eles: 
+
+É o sistema vigente nas escolas públicas (local onde trabalho e faço este serviço como voluntário);
+A similaridade dos pacotes necessários facilitou a adaptação do sistema em ambiente linux diminuindo os problemas de compatibilidade entre os sistemas operacionais;
+Facilidade no desbloqueio do sistema de firewall e;
+Computadores considerados obsoletos na plataforma Microsoft rodam o liso sistema.
+
+Link para download do LE 5.0 individual (particular):
+
+http://linuxeducacional.c3sl.ufpr.br/instalacao.html
+
+1- Update do sistema:
+1.1- Para o perfeito funcionamento do LE 5.0 é necessário realizar o update do sistema através do programa synaptic.
+1.2- Corrija os erros de repositório do LE 5.0 com os seguintes comandos:
+# sudo rm -r /var/lib/apt/lists/* -vf
+# sudo apt-get update
+Referência: 
+http://www.edivaldobrito.com.br/como-corrigir-erros-na-atualizacao-de-repositorio-ubuntu-14-04/
+
+
+2- Pacotes Necessários:
+
+2.1- Java (o open java não funciona corretamente)
+2.1.1- Adicionar ao arquivo “le-repos.list”  as seguintes linhas:
+# sudo nano /etc/apt/sources.list.d/ le-repos.list
+
+deb http://ppa.launchpad.net/webupd8team/java/ubuntu precise main 
+deb-src http://ppa.launchpad.net/webupd8team/java/ubuntu precise main
+(Salve e feche o arquivo)
+ctrl+O(letra)
+ctrl+X
+
+# sudo apt-get update
+2.1.2- Instale o pacote:
+# sudo apt-get install oracle-java8-installer
+2.1.3- verificando a versão do java instalado:
+# java -version 
+java version "1.8.0_60" 
+Java(TM) SE Runtime Environment (build 1.8.0_60-b27) 
+Java HotSpot(TM) Client VM (build 25.60-b23, mixed mode) 
+
+Referências:
+https://launchpad.net/~webupd8team/+archive/ubuntu/java
+http://ubuntuforums.org/showthread.php?t=1400521
+2.1.4- Ativando o Java em um Web browser no Ubuntu Linux
+# cd /usr/lib/mozilla/plugins 
+# sudo ln -s /usr/lib/jvm/java-7-oracle/jre/lib/i386/libnpjp2.so 
+# sudo ln -s /usr/lib/jvm/java-8-oracle/jre/lib/i386/libnpjp2.so
+
+Referência:
+https://www.java.com/pt_BR/download/help/enable_browser_ubuntu.xml
+
+
+2.2-  Postgresql
+
+2.2.1- Instalação via repositório:
+# sudo apt-get install postgresql postgresql-contrib finger
+2.2.2- Depois da instalação, confira a versão colocada com o seguinte comando:
+# psql -V
+psql (PostgreSQL) 9.1.18
+Nota importante: anote a versão instalada para posterior resolução de problemas (veja o item 6.3)
+
+*** note: v. 9.1.24 ***
+
+2.2.3- Verifique se o usuário postgres foi criado com o seguinte comando:
+
+# finger postgresql
+Login: postgres       			Name: PostgreSQL administrator 
+Directory: /var/lib/postgresql      	Shell: /bin/bash 
+Never logged in. 
+No mail. 
+No Plan. 
+2.2.4- Altere a senha do usuário criado automático na instalação do postgres
+# sudo passwd postgres
+informe a senha “abracadabra”
+confirme a senha “abracadabra”
+2.2.5- Agora vamos mudar a senha no servidor postgres:
+# su postgres
+Obs.: será solicitado a senha, informe a senha que acabamos de alterar
+
+postgres@~:$ psql 
+psql (9.1.18) 
+Type "help" for help. 
+postgres=# ALTER USER postgres with password 'abracadabra';
+postgres-# \q 
+2.2.6- Acesse a pasta de configuração do servidor postgres como usuário postgres:
+# su postgres
+Obs.: será solicitado a senha, informe a senha alterada no item 2.2.5
+
+postgres@~:$ cd /etc/postgresql/9.1/main
+2.2.7- Veja os arquivos que estão nesta pasta:
+postgres@~:/etc/postgresql/9.1/main$ ls -la 
+total 52 
+drwxr-xr-x 2 postgres postgres  4096 Jan 10 01:48 . 
+drwxr-xr-x 3 postgres postgres  4096 Jan 10 01:48 .. 
+-rw-r--r-- 1 postgres postgres   316 Jan 10 01:48 environment 
+-rw-r--r-- 1 postgres postgres   143 Jan 10 01:48 pg_ctl.conf 
+-rw-r----- 1 postgres postgres  4649 Jan 10 01:48 pg_hba.conf 
+-rw-r----- 1 postgres postgres  1636 Jan 10 01:48 pg_ident.conf 
+-rw-r--r-- 1 postgres postgres 19262 Jan 10 01:48 postgresql.conf 
+-rw-r--r-- 1 postgres postgres   378 Jan 10 01:48 start.conf 
+
+2.2.8- Faça um backup dos seguintges arquivos:
+postgres@server:/etc/postgresql/9.1/main$ cp pg_hba.conf pg_hba.conf.bak.original 
+postgres@server:/etc/postgresql/9.1/main$ cp postgresql.conf postgresql.conf.bak.original 
+
+
+2.2.9- Veja novamente os arquivos que estão nesta pasta com os arquivo que alteramos.
+# ls -la
+
+2.2.10- Sair do usuário postgres:
+postgres@~:/etc/postgresql/9.1/main$ exit 
+
+2.2.11- Vamos alterar o acesso ao postgres
+
+2.2.11.1 - Localize a linha: listen_addresses = 'localhost'
+descomente e altere o seu parâmetro para ficar assim: listen_addresses = '*'.
+Veja na linha seguinte se a porta é 5432, se for deixe como esta, se caso não for altere para 5432.
+
+# sudo nano /etc/postgresql/9.1/main/postgresql.conf
+(o arquivo editado deve ficar desta maneira)
+
+--------------------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------ 
+# CONNECTIONS AND AUTHENTICATION 
+#------------------------------------------------------------------------------ 
+
+# - Connection Settings - 
+
+listen_addresses =  '*'                   # what IP address(es) to listen on; 
+					# comma-separated list of addresses; 
+					# defaults to 'localhost', '*' = all 
+					# (change requires restart) 
+port = 5432				# (change requires restart)
+---------------------------------------------------------------------------------------------------------------
+(Salve e feche o arquivo)
+ctrl+O(letra)
+ctrl+X
+
+2.2.11.2 – Edite o arquivo “ pg_hba.conf” conforme o modelo abaixo. É o local onde você dará permissões para acesso de outra maquinas na rede.
+# sudo nano /etc/postgresql/9.1/main/pg_hba.conf
+Localize:
+# "local" is for Unix domain socket connections only
+local all all peer
+# IPv4 local connections:
+host all all 127.0.0.1/32 md5
+# IPv6 local connections:
+host all all ::1/128 md5
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+#local replication postgres peer
+#host replication postgres 127.0.0.1/32 md5
+#host replication postgres ::1/128 md5
+
+Altere para:
+# "local" is for Unix domain socket connections only
+local all all peer
+# IPv4 local connections:
+host all all 127.0.0.1/32 trust
+# IPv6 local connections:
+host all all ::1/128 trust
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+#local replication postgres peer
+#host replication postgres 127.0.0.1/32 md5
+#host replication postgres ::1/128 md5
+
+(Salve e feche o arquivo)
+ctrl+O(letra)
+ctrl+X
+
+2.2.12- Reinicie o  postgresql:
+	# sudo service postgresql restart
+Referência:
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-12-04
+http://www.biblivre.org.br/forum/viewtopic.php?f=12&t=712
+
+2.3- Instale o pacote pgadmin3
+# sudo apt-get install pgadmin3
+2.4- Tomcat 7.0.53 (mesma versão do biblivre para windows)
+2.4.1- Mude para o diretório /opt e baixe a seguinte versão:
+# cd /opt
+/opt# sudo wget https://archive.apache.org/dist/tomcat/tomcat-7/v7.0.53/bin/apache-tomcat-7.0.53.tar.gz
+2.4.2- Descompacte o arquivo e crie um link simbólico:
+/opt# sudo tar xvzf apache-tomcat-7.0.53.tar.gz
+/opt# sudo ln -s /opt/apache-tomcat-7.0.53 tomcat
+2.4.3- Crie o arquivo de serviço de inicialização do tomcat:
+# nano /etc/init.d/tomcat
+2.4.4- Copie e cole  o script modificando “entre” as linhas pontilhadas:
+
+Atenção! O script abaixo só é compatível com o  oracle-java8 insataldo no item 2.1.2
+------------------------------------------------------------------------------------------------------------------
+
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          Tomcat 7 start/stop/status script
+# Forked from: https://gist.github.com/valotas/1000094
+# @author: Miglen Evlogiev <bash<a href="/miglen">@miglen</a>.com>
+# Release updates:
+# Updated method for gathering pid of the current proccess
+# Added usage of CATALINA_BASE
+# Added coloring and additional status
+# Added check for existence of the tomcat user
+### END INIT INFO
+
+#Location of JAVA_HOME (bin files)
+export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+
+#Add Java binary files to PATH
+export PATH=$JAVA_HOME/bin:$PATH
+
+#CATALINA_HOME is the location of the bin files of Tomcat  
+export CATALINA_HOME=/opt/tomcat  
+
+#CATALINA_BASE is the location of the configuration files of this instance of Tomcat
+export CATALINA_BASE=/opt/tomcat
+
+#TOMCAT_USER is the default user of tomcat
+export TOMCAT_USER=tomcat
+
+#TOMCAT_USAGE is the message if this script is called without any options
+TOMCAT_USAGE="Usage: $0 {\e[00;32mstart\e[00m|\e[00;31mstop\e[00m|\e[00;32mstatus\e[00m|\e[00;31mrestart\e[00m}"
+
+#SHUTDOWN_WAIT is wait time in seconds for java proccess to stop
+SHUTDOWN_WAIT=20
+
+tomcat_pid() {
+        echo `ps -fe | grep $CATALINA_BASE | grep -v grep | tr -s " "|cut -d" " -f2`
+}
+
+start() {
+  pid=$(tomcat_pid)
+  if [ -n "$pid" ]
+  then
+    echo -e "\e[00;31mTomcat is already running (pid: $pid)\e[00m"
+  else
+    # Start tomcat
+    echo -e "\e[00;32mStarting tomcat\e[00m"
+    #ulimit -n 100000
+    #umask 007
+    #/bin/su -p -s /bin/sh tomcat
+        if [ `user_exists $TOMCAT_USER` = "1" ]
+        then
+                su $TOMCAT_USER -c $CATALINA_HOME/bin/startup.sh
+        else
+                sh $CATALINA_HOME/bin/startup.sh
+        fi
+        status
+  fi
+  return 0
+}
+
+status(){
+          pid=$(tomcat_pid)
+          if [ -n "$pid" ]; then echo -e "\e[00;32mTomcat is running with pid: $pid\e[00m"
+          else echo -e "\e[00;31mTomcat is not running\e[00m"
+          fi
+}
+
+stop() {
+  pid=$(tomcat_pid)
+  if [ -n "$pid" ]
+  then
+    echo -e "\e[00;31mStoping Tomcat\e[00m"
+    #/bin/su -p -s /bin/sh tomcat
+        sh $CATALINA_HOME/bin/shutdown.sh
+
+    let kwait=$SHUTDOWN_WAIT
+    count=0;
+    until [ `ps -p $pid | grep -c $pid` = '0' ] || [ $count -gt $kwait ]
+    do
+      echo -n -e "\n\e[00;31mwaiting for processes to exit\e[00m";
+      sleep 1
+      let count=$count+1;
+    done
+
+    if [ $count -gt $kwait ]; then
+      echo -n -e "\n\e[00;31mkilling processes which didn't stop after $SHUTDOWN_WAIT seconds\e[00m"
+      kill -9 $pid
+    fi
+  else
+    echo -e "\e[00;31mTomcat is not running\e[00m"
+  fi
+
+  return 0
+}
+
+user_exists(){
+        if id -u $1 >/dev/null 2>&1; then
+        echo "1"
+        else
+                echo "0"
+        fi
+}
+
+case $1 in
+
+        start)
+          start
+        ;;
+
+        stop)  
+          stop
+        ;;
+
+        restart)
+          stop
+          start
+        ;;
+
+        status)
+                status
+
+        ;;
+
+        *)
+                echo -e $TOMCAT_USAGE
+        ;;
+esac    
+exit 0
+
+
+------------------------------------------------------------------------------------------------------------------------
+
+(Salve e feche o arquivo)
+ctrl+O (letra)
+ctrl+X
+
+2.4.5- Remova as permissões dos seguintes arquivos:
+# sudo chmod +x /etc/init.d/tomcat
+# sudo chmod 777 /opt/tomcat/logs/catalina.out
+2.4.6- Crie os links simbólicos necessários
+# sudo ln -s /etc/init.d/tomcat /etc/rc1.d/K99tomcat 
+# sudo ln -s /etc/init.d/tomcat /etc/rc2.d/S99tomcat
+
+Referências:
+http://www.liquidweb.com/kb/how-to-install-apache-tomcat-7-on-ubuntu-12-04/
+https://coderwall.com/p/yqrusq/tomcat-7-init-d-script
+http://rodolfoferreira.com.br/2013/05/27/tomcat-service-shell-script/0
+
+2.4.7- Baixe o arquivo postgresql-9.1-903.jdbc4.jar:
+# cd /opt/tomcat/lib/
+# sudo  wget https://jdbc.postgresql.org/download/postgresql-9.1-903.jdbc4.jar
+ 
+2.4.7- Inicie o Tomcat e observe se ele retorna as linhas abaixo, caso positivo, a instalação foi bem sucedida.
+
+# service tomcat start 
+
+Starting tomcat 
+Using CATALINA_BASE:   /opt/tomcat 
+Using CATALINA_HOME:   /opt/tomcat 
+Using CATALINA_TMPDIR: /opt/tomcat/temp 
+Using JRE_HOME:        /usr/lib/jvm/java-8-oracle 
+Using CLASSPATH:       /opt/tomcat/bin/bootstrap.jar:/opt/tomcat/bin/tomcat-juli.jar 
+Tomcat started. 
+Tomcat is running with pid: 32268
+
+2.4.7- Terminando o processo, acesse o browser e digite um dos seguintes endereços: http://localhost:8080/  ou  http://127.0.0.1:8080 ou  http://IP_fixo_do_seu_servidor:8080
+A seguinte janela deve ser exibida:
+
+
+2.5-  Apache2
+2.5.1-Instale via repositórios os seguintes pacotes:
+# sudo apt-get install apache2 apache2-utils apache2-doc authbind
+2.5.2- Ative os seguintes módulos e em seguida reinicie o apache2
+# sudo a2enmod ssl
+# sudo a2enmod actions 
+# sudo a2enmod asis 
+# sudo a2enmod authn_default
+# sudo a2enmod include
+# sudo a2enmod proxy_http
+$ sudo service apache2 restart
+
+Referências:
+https://www.linode.com/docs/websites/apache/apache-2-web-server-on-ubuntu-12-04-lts-precise-pangolin
+http://radicallyrails.blogspot.com.br/2011/08/how-to-install-modssl-on-apache2-ubuntu.html
+
+3- Instalação do Bibilivre 4
+3.1- Instale o Biblivre 4.1.9 no windows e copie os seguintes arquivos para a sua pasta pessoal no LE5:
+C:\Arquivos de programas\Apache Software Foundation\Tomcat 7.0\webapps\Biblivre4.war
+C:\Arquivos de programas\Apache Software Foundation\Apache2.2\conf\biblivre\biblivre4.conf
+
+3.2- Baixe e instale no windows a mais recente versão do programa “7-zip”:
+http://www.7-zip.org/download.html
+3.3- Extraia o conteúdo do Instalador_Biblivre_4.1.9.exe
+Copie para a sua pasta pessoal os dois arquivos: “createdatabase.sql” e “biblivre4.sql”
+3.5- No LE5.0, copie-os para a Pasta Pessoal:
+3.5.1- Copie o arquivo  “Biblivre4.war”  para dentro do Tomcat:
+# sudo cp Biblivre4.war /opt/tomcat/webapps
+3.5.2- Reinicie o tomcat  e verifique se foi criado a pasta com o mesmo nome do arquivo copiado, Biblivre4
+# sudo service tomcat restart
+# ls /opt/tomcat/webapps/
+3.5.3- Copie o arquivo  “biblivre4.conf”  para dentro das configurações do Apache2:
+# sudo cp biblivre4.conf /etc/apache2/
+3.5.3- Edite o arquivo comentando essas duas linhas:
+# sudo nano /etc/apache2/biblivre4.conf
+LoadModule proxy_module modules/mod_proxy.so 
+LoadModule proxy_http_module modules/mod_proxy_http.so
+(linhas comentadas)
+#LoadModule proxy_module modules/mod_proxy.so 
+#LoadModule proxy_http_module modules/mod_proxy_http.so
+(Salve e feche o arquivo)
+ctrl+O (letra)
+ctrl+X
+3.5.4- Mude as permissões:
+chmod +x /etc/apache2/biblivre4.conf
+3.5.5- Acrescente a seguinte linha ao arquivo apache2.conf:
+#sudo nano  /etc/apache2/apache2.conf
+----------------------------------------------------------------------
+# Include module configuration: 
+Include mods-enabled/*.load 
+Include mods-enabled/*.conf 
+
+# Include all the user configurations: 
+Include httpd.conf 
+Include biblivre4.conf 
+
+# Include ports listing 
+Include ports.conf
+--------------------------------------------------------------------------
+
+(Salve e feche o arquivo)
+ctrl+O (letra)
+ctrl+X
+3.5.6-  Copie os arquivos  abaixo para o Postgresql:
+sudo cp biblivre4.sql /var/lib/postgresql/9.1/main/base/
+sudo cp createdatabase.sql /var/lib/postgresql/9.1/main/base/
+
+3.6 - Conectando ao postgres para criar usuário e banco de dados.
+Abra o programa Pgadmin3 (menu principal LE5.0 (clássico) > desenvolvimento >  pgadmin3)
+
+
+3.6.1- Clique na tomada (observar ponteiro do mouse) para conectar o Postgresql e preencha os campos abaixo:
+Name: PostgreSQL 9.1
+Host: localhost
+Password: abracadabra
+assinalar store password
+Clique em ok.
+
+
+3.6.1- Clique com o botão direito do mouse em Login Roles e crie um "novo login role", conforme as imagens abaixo, e siga os passos:
+
+properties: role name = biblivre
+Definition: password = abracadabra
+Role privileges= marcar todos
+Clique em  OK
+
+3.6.2-   Crie o banco de dados conforme a figura abaixo clicando no item Databases, vá para a janela da direita Properties, clique com o botão direito, irá abrir uma lista de opções, clique em New Database e preencha os seguintes campos:
+
+Properties: 	name = biblivre4
+	      	owner= biblivre
+Definition: 	encoding = UTF8
+		Tablespace=pg_default
+		Collation = pt_BR.UTF-8
+		Character type = pt_BR.UTF-8
+Clique em  OK
+
+
+
+
+3.7- Monte a base de dados do Biblivre 4
+Entre na pasta onde copiou o arquivo biblivre4.sql e restaure o conteúdo do mesmo no banco criado “em branco” no Postgres.
+
+# su postgres 
+Senha: 
+postgres@~$ cd /var/lib/postgresql/9.1/main/base/ 
+postgres@~/9.1/main/base$ psql biblivre4 < biblivre4.sql
+
+# sudo service apache2 restart
+
+Para conferir a instalação do Bibilivre4 basta acessar o browser e digitar:
+http://localhost/Biblivre4/
+http://127.0.0.1:8080/Biblivre4/
+
+Referência:
+http://www.biblivre.org.br/forum/viewtopic.php?f=12&t=1418
+
+*** here ***
+
+*** note ***
+
+service postgresql stop
+pg_dropcluster --stop 9.1 main
+pg_createcluster --local pt_BR.UTF-8 --start 9.1 main
+
+cd ~/psql-bak
+cp pg_hba.conf /etc/postgresql/9.1/main
+cp postgresql.conf /etc/postgresql/9.1/main
+
+service postgresql start
+
+su postgres
+
+psql
+ALTER USER postgres with password 'abracadabra';
+
+
+
+4- Configurações para acesso remoto (muito importante pois permite vários usuários cadastrando livros ao mesmo tempo além de permitir consultas online das obras):
+
+4.1- Para o acesso remoto ao Bibilivre 4 é necessário atribuir um endereço IP estático ao computador.
+4.2- Edite o conteúdo do arquivo /opt/tomcat/webapps/Biblivre4/META-INF/context.xml
+Ao acessar o arquivo, descomente a seguinte linha e substitua o IP informado pelo o IP do computador contendo a instalação do BibLivre 4. 
+# sudo nano /opt/tomcat/webapps/Biblivre4/META-INF/context.xml
+
+<!--Resource auth="Container" driverClassName="org.postgresql.Driver" logAbandoned="false" removeAbandoned="true" removeAbandonedTimeout="60" maxActive="50" maxIdle="30" maxWait="-1" name="jdbc/biblivre4" username="biblivre" password="abracadabra" type="javax.sql.DataSource" url="jdbc:postgresql://10.10.1.2:5432/biblivre4"/-->
+
+(Arquivo alterado)
+<Resource auth="Container" driverClassName="org.postgresql.Driver" logAbandoned="false" removeAbandoned="true" removeAbandonedTimeout="60" maxActive="50" maxIdle="30" maxWait="-1" name="jdbc/biblivre4" username="biblivre" password="abracadabra" type="javax.sql.DataSource" url="jdbc:postgresql://192.168.1.110:5432/biblivre4"/>
+
+4.3- Após a alteração, reinicie o Tomcat:
+# sudo service tomcat restart
+
+4.4 – Edite o arquivo de configuração pg_hba.conf  do Postgresql:
+
+# sudo nano /etc/postgresql/9.1/main/pg_hba.conf
+
+Neste arquivo, é feita a liberação do acesso remoto ao computador contendo o  Biblivre 4.  Se por exemplo, o endereço do computador na rede for 192.168.1.110 e a máscara de rede for 255.255.255.0 (24) insira a seguinte linha:
+# IPv4 local connections:
+host	all	all 	127.0.0.1/32	trust
+host 	all 	all 	192.168.1.110/24	md5
+
+4.5- Reinicie o Postgresql:
+$ sudo service postgresql restart
+
+5- Update Biblivre 4
+5.1- Instale a última versão completa do Biblivre 4  para windows.
+Obs.: A extração dos arquivos usando o programa 7zip não funciona!
+5.2 - Copie o seguinte arquivo para a pasta pessoal do LE5.0: 
+C:\Arquivos de programas\Apache Software Foundation\Tomcat 7.0\webapps\Biblivre4.war
+5.3- Pare o Tomcat:
+# sudo service tomcat stop
+5.4- Por medida de segurança faça um backup da pasta Bibilivre4
+# sudo cp /opt/tomcat/webapps/Biblivre4 /opt/tomcat/webapps/Biblivre4-xxx
+Onde xxx correspondem aos números da versão atual do Biblivre.
+5.5- Copie o arquivo extraído da instalação windows para o diretório do Tomcat:
+# sudo cp /pasta_pessoal_LE5.0/Biblivre4.war /opt/tomcat/webapps/
+5.5- Inicie o Tomcat
+# sudo service tomcat start
+5.6- Edite o conteúdo do arquivo /opt/tomcat/webapps/Biblivre4/META-INF/context.xml conforme o descrito no item 4.2.
+
+5.7- Após a alteração, reinicie o Tomcat:
+$ sudo service tomcat restart
+
+6- Erros que podem acontecer:
+6.1- Problemas com a conexão do banco de dados: A-Verifique se os programas Tomcat, Apache2 e Postgresql estão rodando; B- Certifique-se de que o IP fixo do servidor não tenha sido alterado.
+6.2- Não é possível conectar remotamente o Biblivre 4: verifique se o firewall (UFW) não está bloqueando o acesso a porta 8080.
+6.3- Se as seguintes mensagens forem encontradas:
+Erro ao estabelecer conexão com o Banco de Dados.
+Por favor verifique se o mesmo está ativo e acessível pelo servidor Biblivre. 
+
+Error establishing a connection to the Database Server.
+Please check if the database server is running and accessible by the Biblivre server. 
+Error connecting to the server: não pôde conectar ao servidor: Conexão recusada
+O servidor está executando na máquina "localhost" (::1) e aceitando
+conexões TCP/IP na porta 5432?
+não pôde conectar ao servidor: Conexão recusada
+O servidor está executando na máquina "localhost" (127.0.0.1) e aceitando
+conexões TCP/IP na porta 5432?
+postgres@~$ psql 
+psql: could not connect to server: Arquivo ou diretório não encontrado 
+	Is the server running locally and accepting 
+	connections on Unix domain socket "/var/run/postgresql/.s.PGSQL.5432"? 
+
+6.3.1- Confira se a versão do Postgresql (item 2.2.2) é a mesma instalada, geralmente o Postgresql realiza updates automáticos no LE5.0 e isso gera esse tipo de erro. 
+6.3.2- Se for constatado o update de versão do Postgresql execute as sequintes tarefas:
+# sudo su (modo superusuário)
+# cd /var/lib/postgresql/9.1/main
+
+6.3.2.1-Remova os links simbólicos para os  SSL certs
+# rm server.crt
+# rm server.key 
+
+6.3.2.2- Copie os SSL certs para o diretório local:
+# cp /etc/ssl/certs/ssl-cert-snakeoil.pem server.crt
+# cp /etc/ssl/private/ssl-cert-snakeoil.key server.key
+
+6.3.2.3- Altere as permissões : set permissions on ssl certs
+and postgres ownership on everything eles just in case.
+# chown postgres *
+# chmod 640 server.crt server.key
+
+6.3.3- Reinicie o Postgresql:
+# service postgresql start
+Referência:
+https://wiki.postgresql.org/wiki/May_2015_Fsync_Permissions_Bug
+
+7- Endereços na internet onde o Bibllivre 4 está rodando no linux
+7.1- Escola E. Professor Mantovani – Erechim – RS.
+http://189.73.175.76/Biblivre4/
+7.1- Escola E. N. José Bonifácio – Erechim – RS.
+http://189.73.172.74/Biblivre4/
